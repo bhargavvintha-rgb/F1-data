@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Max Verstappen Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Barlow Condensed', sans-serif; background: #060608; color: #fff; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #1a3a6e; border-radius: 2px; }
+
+    .main-tab { background:none;border:none;color:#555;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:10px 18px;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap; }
+    .main-tab:hover { color:#aaa; }
+    .main-tab.active { color:#1e6fe8;border-bottom:3px solid #1e6fe8; }
+
+    .year-btn { background:#0c1019;border:1px solid #1a2a40;color:#666;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;padding:6px 14px;border-radius:3px;transition:all .2s; }
+    .year-btn:hover { color:#aaa;border-color:#333; }
+    .year-btn.active { background:#1e6fe8;border-color:#1e6fe8;color:#fff; }
+    .year-btn.champ { border-color:#ffd700; }
+    .year-btn.champ.active { background:linear-gradient(135deg,#b8860b,#daa520);border-color:#ffd700;color:#000; }
+
+    .race-row { display:grid;grid-template-columns:28px 22px 1fr 38px 38px 46px;gap:4px;align-items:center;padding:8px 12px;border-bottom:1px solid #0e0e12;font-size:12px;cursor:pointer;transition:background .15s; }
+    .race-row:hover { background:#0d1a2e; }
+
+    .pos-badge { font-size:11px;font-weight:800;text-align:center;padding:2px 6px;border-radius:3px;min-width:30px; }
+    .pos-win { background:#1a3a1a;color:#4dff91; }
+    .pos-pod { background:#1a2e3a;color:#4db8ff; }
+    .pos-pts { background:#151520;color:#aaa; }
+    .pos-dnf { background:#3a1a1a;color:#ff6464; }
+    .pos-upcoming { background:#1a1a2a;color:#444; }
+
+    .stat-card { background:linear-gradient(135deg,#0d1520,#080e18);border:1px solid #1a2a40;border-radius:8px;padding:14px;position:relative;overflow:hidden; }
+    .stat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#1e6fe8,#00b4d8); }
+
+    .radio-card { background:#0c1019;border-left:3px solid #1e6fe8;padding:11px 14px;border-radius:0 6px 6px 0;margin-bottom:10px; }
+    .gt3-card { background:#0c1019;border:1px solid #1a2a3a;border-radius:8px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all .2s; }
+    .gt3-card:hover { border-color:#1e6fe8;background:#0d1522; }
+
+    .pill { display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+    .pill-blue { background:#0d2050;color:#4d9fff; }
+    .pill-green { background:#0d2a14;color:#4dff91; }
+    .pill-red { background:#2a0d0d;color:#ff6464; }
+    .pill-orange { background:#2a1a0d;color:#ffaa4d; }
+    .pill-gray { background:#1a1a22;color:#888; }
+
+    .section-hdr { font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#1e6fe8;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1a2a40; }
+    .halo { text-shadow:0 0 24px rgba(30,111,232,0.6); }
+    .live-dot { width:8px;height:8px;border-radius:50%;background:#ff3333;display:inline-block;animation:blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
+
+    .edit-input { background:#0d1520;border:1px solid #1e6fe8;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:12px;padding:5px 8px;border-radius:3px;width:100%; }
+    .save-btn { background:#1e6fe8;border:none;color:#fff;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;padding:6px 14px;border-radius:3px;margin-right:6px; }
+    .cancel-btn { background:#1a1a22;border:1px solid #333;color:#888;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;padding:6px 14px;border-radius:3px; }
+
+    #loading { display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px; }
+    .spinner { width:40px;height:40px;border:3px solid #1a2a40;border-top:3px solid #1e6fe8;border-radius:50%;animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-family:'Barlow Condensed',sans-serif;color:#1e6fe8;font-size:14px;font-weight:700;letter-spacing:2px;">LOADING TELEMETRY...</div>
+</div>
+
+<div id="root" style="display:none"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 👇 PASTE YOUR GITHUB RAW LINK HERE
+// ══════════════════════════════════════════════════════════════
+const DATA_URL = "https://raw.githubusercontent.com/bhargavvintha-rgbs/f1-data/main/f1.json";
+// ══════════════════════════════════════════════════════════════
+
+const { useState, useEffect } = React;
+
+function getPosBadge(pos, pts) {
+  const isWin = pts === 25 || pts === 26;
+  const isDNF = pos === "DNF";
+  const isPod = typeof pos === "number" && pos <= 3 && !isWin;
+  if (isWin) return { cls:"pos-win", label:"P1" };
+  if (isDNF) return { cls:"pos-dnf", label:"DNF" };
+  if (isPod) return { cls:"pos-pod", label:"P"+pos };
+  if (pos === null || pos === "?") return { cls:"pos-upcoming", label:"?" };
+  return { cls:"pos-pts", label:"P"+pos };
+}
+
+function App({ data }) {
+  const [mainTab, setMainTab] = useState("f1");
+  const [selectedYear, setSelectedYear] = useState("2025");
+  const [expandedRace, setExpandedRace] = useState(null);
+  const [gt3Expanded, setGt3Expanded] = useState(null);
+  const [liveTime, setLiveTime] = useState(new Date());
+  const [editingRace, setEditingRace] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [localRaces2026, setLocalRaces2026] = useState(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setLiveTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const f1Years = Object.keys(data.seasons).filter(y => y !== "2026").sort();
+  const seasonData = data.seasons[selectedYear];
+  const s2026 = data.seasons["2026"];
+  const races2026 = localRaces2026 || s2026.races;
+
+  const totalPts2026 = races2026.reduce((s, r) => s + (typeof r.pts === "number" ? r.pts : 0), 0);
+  const wins2026 = races2026.filter(r => r.pts === 25 || r.pts === 26).length;
+  const dnfs2026 = races2026.filter(r => r.pos === "DNF").length;
+
+  function startEdit(race) {
+    setEditingRace(race.round);
+    setEditForm({ pos: race.pos || "", pts: race.pts || "", grid: race.grid || "", gap: race.gap || "", notes: race.notes || "" });
+  }
+  function saveEdit(round) {
+    setLocalRaces2026(races2026.map(r => r.round === round ? {
+      ...r,
+      pos: isNaN(Number(editForm.pos)) ? editForm.pos : Number(editForm.pos),
+      pts: isNaN(Number(editForm.pts)) ? 0 : Number(editForm.pts),
+      grid: editForm.grid,
+      gap: editForm.gap,
+      notes: editForm.notes,
+      status: "done"
+    } : r));
+    setEditingRace(null);
+  }
+
+  const e = React.createElement;
+
+  // ── helpers
+  function RaceTable({ races, year }) {
+    return e('div', { style:{background:"#0c1019",borderRadius:8,overflow:"hidden",border:"1px solid #1a2240",marginBottom:14} },
+      e('div', { className:"race-row", style:{background:"#060c18",cursor:"default",fontSize:9,color:"#444",letterSpacing:1.5,textTransform:"uppercase"} },
+        e('span',null,"RD"), e('span',null), e('span',null,"GRAND PRIX"),
+        e('span',{style:{textAlign:"center"}},"GRID"),
+        e('span',{style:{textAlign:"center"}},"POS"),
+        e('span',{style:{textAlign:"center"}},"PTS")
+      ),
+      races.map(function(r, i) {
+        const badge = getPosBadge(r.pos, r.pts);
+        const key = year+"-"+i;
+        const isExp = expandedRace === key;
+        const seasonRadios = year === "2026" ? [] : (data.seasons[year] ? data.seasons[year].radios : []);
+        const relRadios = seasonRadios.filter(function(rd) {
+          return rd.race.toLowerCase().indexOf(r.gp.toLowerCase().split(" ")[0]) !== -1;
+        });
+        const hasRadio = relRadios.length > 0;
+        const isUpcoming = r.status === "upcoming";
+        const isEditing = editingRace === r.round;
+
+        return e('div', { key:i },
+          e('div', {
+            className:"race-row",
+            onClick: function() {
+              if (!isEditing) {
+                if (year === "2026" && isUpcoming) { startEdit(r); }
+                else { setExpandedRace(isExp ? null : key); }
+              }
+            }
+          },
+            e('span',{style:{fontSize:10,color:"#444",textAlign:"right"}}, r.round),
+            e('span',null, r.flag),
+            e('span',{style:{fontSize:12,fontWeight:600,color:isUpcoming?"#444":"#ddd",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontStyle:isUpcoming?"italic":"normal"}},
+              r.gp, hasRadio ? " 📻" : "", year==="2026" && isUpcoming ? " ✏️" : ""
+            ),
+            e('span',{style:{fontSize:11,textAlign:"center",color:"#666"}}, r.grid || "?"),
+            e('span',{className:"pos-badge "+badge.cls}, badge.label),
+            e('span',{style:{fontSize:12,fontWeight:700,textAlign:"center",color:(r.pts===25||r.pts===26)?"#4dff91":r.pos==="DNF"?"#ff6464":isUpcoming?"#333":"#fff"}},
+              isUpcoming ? "—" : r.pts
+            )
+          ),
+          isExp && !isEditing && e('div',{style:{background:"#080e18",padding:"10px 14px",borderBottom:"1px solid #0e0e12"}},
+            e('div',{style:{fontSize:12,color:"#bbb",fontFamily:"'Barlow',sans-serif",marginBottom:8,lineHeight:1.6}}, r.notes),
+            year === "2026" && e('button',{className:"save-btn",style:{fontSize:10},onClick:function(ev){ev.stopPropagation();startEdit(r);}}, "✏️ Edit Result"),
+            relRadios.map(function(rd,j){
+              return e('div',{key:j,style:{background:"#0a1525",borderLeft:"3px solid #1e6fe8",padding:"8px 12px",borderRadius:"0 5px 5px 0",marginBottom:6,marginTop:6}},
+                e('div',{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},
+                  e('span',{style:{fontSize:10,color:"#1e6fe8",fontWeight:700,letterSpacing:1}},"📻 RADIO"),
+                  e('span',null,rd.mood)
+                ),
+                e('div',{style:{fontSize:13,fontWeight:700,color:"#fff",marginBottom:4,fontFamily:"'Barlow',sans-serif",lineHeight:1.4}},'"'+rd.quote+'"'),
+                e('div',{style:{fontSize:11,color:"#888",fontFamily:"'Barlow',sans-serif"}},rd.context)
+              );
+            })
+          ),
+          isEditing && e('div',{style:{background:"#050d1a",padding:"12px 14px",borderBottom:"1px solid #1e6fe8"},onClick:function(ev){ev.stopPropagation();}},
+            e('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}},
+              [["Position","pos"],["Points","pts"],["Grid","grid"],["Gap","gap"]].map(function(f){
+                return e('div',{key:f[1]},
+                  e('div',{style:{fontSize:9,color:"#555",letterSpacing:1,marginBottom:3,textTransform:"uppercase"}},f[0]),
+                  e('input',{className:"edit-input",value:editForm[f[1]]||"",onChange:function(ev){const nf=Object.assign({},editForm);nf[f[1]]=ev.target.value;setEditForm(nf);}})
+                );
+              })
+            ),
+            e('div',{style:{marginBottom:8}},
+              e('div',{style:{fontSize:9,color:"#555",letterSpacing:1,marginBottom:3,textTransform:"uppercase"}},"Notes"),
+              e('input',{className:"edit-input",value:editForm.notes||"",onChange:function(ev){setEditForm(Object.assign({},editForm,{notes:ev.target.value}));}})
+            ),
+            e('button',{className:"save-btn",onClick:function(){saveEdit(r.round);}}, "✓ Save"),
+            e('button',{className:"cancel-btn",onClick:function(){setEditingRace(null);}}, "✗ Cancel")
+          )
+        );
+      })
+    );
+  }
+
+  return e('div', { style:{fontFamily:"'Barlow Condensed',sans-serif",background:"#060608",minHeight:"100vh",color:"#fff"} },
+
+    // HEADER
+    e('div',{style:{background:"linear-gradient(180deg,#060c18,#060608)",borderBottom:"1px solid #1a2a40"}},
+      e('div',{style:{padding:"18px 16px 0"}},
+        e('div',{style:{display:"flex",alignItems:"center",gap:12,marginBottom:12}},
+          e('div',{style:{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#1e6fe8,#003d8f)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,border:"2px solid #1e6fe8",boxShadow:"0 0 20px rgba(30,111,232,0.5)",flexShrink:0}},"1"),
+          e('div',null,
+            e('div',{style:{fontSize:9,letterSpacing:3,color:"#1e6fe8",fontWeight:700,textTransform:"uppercase",marginBottom:1}},"🇳🇱 Oracle Red Bull Racing"),
+            e('div',{className:"halo",style:{fontSize:24,fontWeight:900,letterSpacing:-0.5,lineHeight:1}},data.driver),
+            e('div',{style:{fontSize:10,color:"#888",letterSpacing:1.5,fontWeight:500}},"4× WORLD CHAMPION · "+data.career.wins+" WINS · "+data.career.poles+" POLES")
+          )
+        ),
+        e('div',{style:{display:"flex",gap:16,marginBottom:12,overflowX:"auto",paddingBottom:2}},
+          [["Titles","4","#ffd700"],["Wins",data.career.wins,"#4dff91"],["Poles",data.career.poles,"#1e6fe8"],["Podiums",data.career.podiums,"#4db8ff"],["FL",data.career.fastestLaps,"#ffaa4d"]].map(function(s){
+            return e('div',{key:s[0],style:{textAlign:"center",flexShrink:0}},
+              e('div',{style:{fontSize:20,fontWeight:900,color:s[2]}},s[1]),
+              e('div',{style:{fontSize:9,color:"#555",letterSpacing:1.5,textTransform:"uppercase"}},s[0])
+            );
+          })
+        ),
+        e('div',{style:{display:"flex",overflowX:"auto",gap:0,borderBottom:"1px solid #111"}},
+          [["f1","🏎 F1 Seasons"],["live2026","🔴 2026 Live"],["gt3","🏁 GT3"]].map(function(t){
+            return e('button',{key:t[0],className:"main-tab "+(mainTab===t[0]?"active":""),onClick:function(){setMainTab(t[0]);}},
+              t[0]==="live2026" ? e('span',null,e('span',{className:"live-dot",style:{marginRight:6}}),t[1]) : t[1]
+            );
+          })
+        )
+      )
+    ),
+
+    // CONTENT
+    e('div',{style:{padding:"14px 14px 80px",maxHeight:"calc(100vh - 170px)",overflowY:"auto"}},
+
+      // ── F1 SEASONS
+      mainTab==="f1" && e('div',null,
+        e('div',{style:{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}},
+          f1Years.map(function(y){
+            const d = data.seasons[y];
+            const isC = d.champion === true;
+            return e('button',{key:y,className:"year-btn "+(selectedYear===y?"active":"")+" "+(isC?"champ":""),onClick:function(){setSelectedYear(y);setExpandedRace(null);}},
+              y+" "+(isC?"🏆":"")
+            );
+          })
+        ),
+        e('div',{className:"stat-card",style:{marginBottom:14}},
+          e('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
+            e('div',null,
+              e('div',{style:{fontSize:26,fontWeight:900,color:seasonData.champion?"#ffd700":"#fff"}},selectedYear),
+              e('div',{style:{fontSize:11,color:"#1e6fe8",fontWeight:700,marginBottom:4}},seasonData.car),
+              e('div',{style:{fontSize:13,color:"#ccc",fontWeight:700,lineHeight:1.4}},seasonData.headline)
+            ),
+            e('div',{style:{textAlign:"right",flexShrink:0}},
+              e('div',{style:{fontSize:28,fontWeight:900,color:seasonData.champion?"#ffd700":"#aaa"}},seasonData.champion ? "P1 🏆" : "P"+seasonData.finalPosition),
+              e('div',{style:{fontSize:9,color:"#555",letterSpacing:1}},"FINAL STANDING")
+            )
+          ),
+          e('div',{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7,marginBottom:10}},
+            [["Points",seasonData.points,"#1e6fe8"],["Wins",seasonData.wins,"#4dff91"],["Poles",seasonData.poles,"#4db8ff"],["Podiums",seasonData.podiums,"#ffaa4d"]].map(function(s){
+              return e('div',{key:s[0],style:{background:"#060c18",borderRadius:5,padding:"7px 5px",textAlign:"center",border:"1px solid #111"}},
+                e('div',{style:{fontSize:18,fontWeight:900,color:s[2]}},s[1]),
+                e('div',{style:{fontSize:9,color:"#555",letterSpacing:1,textTransform:"uppercase"}},s[0])
+              );
+            })
+          ),
+          e('div',{style:{fontSize:12,color:"#bbb",lineHeight:1.7,fontFamily:"'Barlow',sans-serif"}},seasonData.story||"")
+        ),
+
+        // points chart
+        e('div',{style:{background:"#0c1019",border:"1px solid #1a2240",borderRadius:8,padding:12,marginBottom:14}},
+          e('div',{className:"section-hdr"},"Points Progression"),
+          e('div',{style:{display:"flex",alignItems:"flex-end",gap:3,height:60,marginBottom:4}},
+            seasonData.races.map(function(r,i){
+              const cum = seasonData.races.slice(0,i+1).reduce(function(s,x){return s+(typeof x.pts==="number"?x.pts:0);},0);
+              const maxCum = seasonData.races.reduce(function(s,x){return s+(typeof x.pts==="number"?x.pts:0);},0)||1;
+              const h = Math.max(4,(cum/maxCum)*56);
+              const isWin = r.pts===25||r.pts===26;
+              const isDNF = r.pos==="DNF";
+              return e('div',{key:i,title:r.gp+": "+cum+"pts",style:{flex:1,height:h+"px",background:isWin?"#1e6fe8":isDNF?"#3a1a1a":"#1a2a40",borderRadius:"2px 2px 0 0",minWidth:4}});
+            })
+          ),
+          e('div',{style:{fontSize:9,color:"#444"}},"Blue = Win · Dark = DNF")
+        ),
+
+        e('div',{className:"section-hdr"},"Race-by-Race  ",e('span',{style:{color:"#555",fontSize:9,fontWeight:400}},"— tap to expand")),
+        e(RaceTable, { races: seasonData.races, year: selectedYear }),
+
+        seasonData.radios && seasonData.radios.length > 0 && e('div',null,
+          e('div',{className:"section-hdr"},"All Radio Messages — "+selectedYear),
+          seasonData.radios.map(function(r,i){
+            return e('div',{key:i,className:"radio-card"},
+              e('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+                e('span',{style:{fontSize:11,color:"#1e6fe8",fontWeight:700,letterSpacing:1}},r.race),
+                e('span',{style:{fontSize:16}},r.mood)
+              ),
+              e('div',{style:{fontSize:14,fontWeight:700,color:"#fff",marginBottom:6,fontFamily:"'Barlow',sans-serif",lineHeight:1.4}},'"'+r.quote+'"'),
+              e('div',{style:{fontSize:11,color:"#888",fontFamily:"'Barlow',sans-serif",lineHeight:1.5}},r.context)
+            );
+          })
+        )
+      ),
+
+      // ── 2026 LIVE
+      mainTab==="live2026" && e('div',null,
+        e('div',{style:{background:"linear-gradient(135deg,#1a0808,#0c0508)",border:"1px solid #3a1a1a",borderRadius:8,padding:12,marginBottom:14}},
+          e('div',{style:{display:"flex",alignItems:"center",gap:10,marginBottom:8}},
+            e('span',{className:"live-dot"}),
+            e('span',{style:{fontSize:12,fontWeight:800,color:"#ff3333",letterSpacing:2}},"2026 SEASON — LIVE TRACKER"),
+            e('span',{style:{fontSize:10,color:"#555",marginLeft:"auto"}},liveTime.toLocaleTimeString())
+          ),
+          e('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:10}},
+            [["Points",totalPts2026,"#ff6464"],["Wins",wins2026,"#4dff91"],["DNFs",dnfs2026,"#ff6464"]].map(function(s){
+              return e('div',{key:s[0],style:{background:"#060608",borderRadius:5,padding:"8px 6px",textAlign:"center",border:"1px solid #1a0808"}},
+                e('div',{style:{fontSize:22,fontWeight:900,color:s[2]}},s[1]),
+                e('div',{style:{fontSize:9,color:"#555",letterSpacing:1.5,textTransform:"uppercase"}},s[0])
+              );
+            })
+          ),
+          e('div',{style:{fontSize:11,color:"#bbb",fontFamily:"'Barlow',sans-serif",lineHeight:1.6}},
+            s2026.headline,
+            e('br',null),
+            e('span',{style:{color:"#ffaa4d"}},"⚠ "+s2026.context.engineerDeparture)
+          )
+        ),
+        e('div',{className:"section-hdr"},"Race Results  ",e('span',{style:{color:"#1e6fe8",fontSize:9,fontWeight:400}},"— tap upcoming to enter result")),
+        e(RaceTable, { races: races2026, year: "2026" }),
+        e('div',{style:{background:"#0c1019",border:"1px solid #1a2a40",borderRadius:8,padding:12}},
+          e('div',{className:"section-hdr"},"2026 Context"),
+          [
+            ["New 2026 Regs","Completely new cars. Max publicly critical. Red Bull adaptation difficult.","⚠"],
+            ["Teammate","Isack Hadjar (rookie) replaced Perez. Knocked Max out Q2 Japan.","🆕"],
+            ["Lambiase","GP Lambiase → McLaren 2027. 8-year partnership ending.","💔"],
+            ["Retirement Hint",s2026.context.retirementQuote,"🤔"],
+            ["GT3",s2026.context.gt3Next,"🏎"],
+          ].map(function(item){
+            return e('div',{key:item[0],style:{display:"flex",gap:10,marginBottom:10}},
+              e('span',{style:{fontSize:16,flexShrink:0}},item[2]),
+              e('div',null,
+                e('div',{style:{fontSize:12,fontWeight:700,color:"#fff"}},item[0]),
+                e('div',{style:{fontSize:11,color:"#888",fontFamily:"'Barlow',sans-serif"}},item[1])
+              )
+            );
+          })
+        )
+      ),
+
+      // ── GT3
+      mainTab==="gt3" && e('div',null,
+        e('div',{style:{background:"linear-gradient(135deg,#0a1a0a,#060c08)",border:"1px solid #1a3a1a",borderRadius:8,padding:14,marginBottom:16}},
+          e('div',{style:{fontSize:14,fontWeight:800,color:"#4dff91",marginBottom:6}},"🏎 VERSTAPPEN RACING ECOSYSTEM"),
+          e('div',{style:{fontSize:11,color:"#bbb",fontFamily:"'Barlow',sans-serif",lineHeight:1.7}},data.gt3.ecosystem," · ",data.gt3.simTeam)
+        ),
+        [2025,2026].map(function(yr){
+          const evs = data.gt3.events.filter(function(ev){return ev.year===yr;});
+          return e('div',{key:yr,style:{marginBottom:20}},
+            e('div',{style:{display:"flex",alignItems:"center",gap:10,marginBottom:10}},
+              e('div',{style:{fontSize:22,fontWeight:900,color:"#1e6fe8"}},yr),
+              yr===2026 ? e('span',{className:"pill pill-red"},"🔴 ACTIVE") : e('span',{className:"pill pill-green"},"✅ COMPLETE")
+            ),
+            evs.map(function(ev,i){
+              const key = yr+"-"+i;
+              const pillCls = ev.type==="win"?"pill-green":ev.type==="dsq"?"pill-red":ev.type==="upcoming"?"pill-orange":ev.type==="dnf"?"pill-red":"pill-gray";
+              return e('div',{key:i,className:"gt3-card",onClick:function(){setGt3Expanded(gt3Expanded===key?null:key);}},
+                e('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}},
+                  e('div',{style:{flex:1}},
+                    e('div',{style:{fontSize:10,color:"#1e6fe8",marginBottom:3,letterSpacing:1}},ev.date),
+                    e('div',{style:{fontSize:15,fontWeight:800}},ev.event),
+                    e('div',{style:{fontSize:11,color:"#888",marginTop:2}},ev.car),
+                    e('div',{style:{fontSize:10,color:"#555",marginTop:1}},ev.team)
+                  ),
+                  e('span',{className:"pill "+pillCls,style:{flexShrink:0}},ev.result)
+                ),
+                gt3Expanded===key && e('div',{style:{marginTop:12,paddingTop:12,borderTop:"1px solid #1a2a3a"}},
+                  ev.codriver && e('div',{style:{fontSize:11,color:"#aaa",marginBottom:8}},"Co-driver(s): ",e('strong',{style:{color:"#fff"}},ev.codriver)),
+                  e('div',{style:{fontSize:12,color:"#ccc",lineHeight:1.7,fontFamily:"'Barlow',sans-serif"}},ev.notes)
+                )
+              );
+            })
+          );
+        }),
+        e('div',{style:{background:"#0c1019",border:"1px solid #1a2a3a",borderRadius:8,padding:14}},
+          e('div',{className:"section-hdr"},"Verstappen Sim Racing"),
+          e('div',{style:{fontSize:11,color:"#bbb",fontFamily:"'Barlow',sans-serif",lineHeight:1.8,marginBottom:10}},
+            "Team Redline (2000) → Verstappen Sim Racing 2026. iRating: 8,754+ (top 0.5%). PESC 2022, 2024, 2025."
+          ),
+          e('div',{style:{background:"#080e18",borderLeft:"3px solid #4dff91",padding:"10px 12px",borderRadius:"0 6px 6px 0"}},
+            e('div',{style:{fontSize:9,color:"#4dff91",letterSpacing:1.5,marginBottom:4,textTransform:"uppercase"}},"Max on Sim Racing"),
+            e('div',{style:{fontSize:12,color:"#ccc",fontStyle:"italic",fontFamily:"'Barlow',sans-serif"}},'"In terms of how you work on the setup, how you work out strategies... it\'s exactly the same as in real life."')
+          )
+        )
+      )
+    ),
+
+    // FOOTER
+    e('div',{style:{position:"fixed",bottom:0,left:0,right:0,background:"#060608",borderTop:"1px solid #1a2a40",padding:"8px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+      e('span',{style:{fontSize:10,color:"#333",letterSpacing:1}},"MAX VERSTAPPEN DASHBOARD"),
+      e('span',{style:{fontSize:10,color:"#1e6fe8",fontWeight:700}},
+        mainTab==="f1" ? selectedYear+" · "+seasonData.points+" PTS"
+        : mainTab==="live2026" ? "🔴 2026 · "+totalPts2026+" PTS"
+        : "🏎 GT3 NEXT: N24 MAY 16–17"
+      ),
+      e('span',{style:{fontSize:9,color:"#333"}}, "Updated: "+data.lastUpdated)
+    )
+  );
+}
+
+// ── BOOT
+fetch(DATA_URL + "?t=" + Date.now())
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("root").style.display = "block";
+    ReactDOM.render(React.createElement(App, { data: data }), document.getElementById("root"));
+  })
+  .catch(function(err) {
+    document.getElementById("loading").innerHTML =
+      '<div style="color:#ff6464;font-family:\'Barlow Condensed\',sans-serif;font-size:14px;padding:20px;text-align:center">' +
+      '⚠ Could not load data<br><span style="color:#555;font-size:11px;margin-top:8px;display:block">Check DATA_URL at top of this file · ' + err.message + '</span></div>';
+  });
+</script>
+</body>
+</html>
