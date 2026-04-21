@@ -1,0 +1,13 @@
+{
+  "driver": "Max Verstappen",
+  "position": 2,
+  "points": 421,
+  "wins": 8,
+  "podiums": 15,
+  "races": [
+    { "name": "Bahrain", "pos": 1, "pts": 25, "status": "done" },
+    { "name": "Saudi Arabia", "pos": 2, "pts": 18, "status": "done" },
+    { "name": "Australia", "pos": 3, "pts": 15, "status": "done" },
+    { "name": "Japan", "pos": "-", "pts": 0, "status": "upcoming" }
+  ]
+}
